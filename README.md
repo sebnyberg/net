@@ -1,2 +1,3 @@
 # net
-Network things
+
+Network libraries for testing and learning.
