@@ -1,7 +1,6 @@
 package netlab
 
-// Package netlab is loosely based on Tailscale's natlab package. It is used to
-// simulate a network to debug different network topologies and algorithms.
+// Package netlab provides a basic laboration network.
 
 import (
 	"context"
