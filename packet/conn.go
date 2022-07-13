@@ -1,12 +1,5 @@
 package packet
 
-// Package raw provides a net.PackageConn implementation for an AF_PACKET
-// socket. It is heavily inspired by mdlayher/packet and google/gopacket.
-// My thought behind this packet is to somehow bind a virtual ethernet device to
-// the gateway of my virtual in-memory network. That way the network could act
-// like an ingress of sorts.
-//
-
 import (
 	"fmt"
 	"net"
