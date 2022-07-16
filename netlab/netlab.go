@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
+	"net"
 	"net/netip"
 )
 
@@ -14,7 +16,9 @@ var (
 	ifaceBufSize = 0
 )
 
-// Network simulates a network
+// Network is a set of interfaces (bound together by links). Currently, it's
+// role is to dynamically allocate IP addresses for interfaces. You could think
+// of it as ICANN.
 type Network struct {
 	Name   string
 	Prefix netip.Prefix
@@ -44,7 +48,8 @@ func (n *Network) allocIP() netip.Addr {
 
 // Node is a node in the network. It could be a machine or perhaps a switch.
 type Node struct {
-	Name       string
+	Name string
+
 	interfaces []*Interface
 }
 
@@ -58,7 +63,7 @@ func (n *Node) Attach(ifname string, net *Network) *Interface {
 		link: nil,
 		recv: make(chan []byte, ifaceBufSize),
 		ip:   net.allocIP(),
-		// Todo: MAC?
+		mac:  allocHW(),
 	}
 	n.interfaces = append(n.interfaces, &netif)
 	if net.interfaces == nil {
@@ -76,11 +81,13 @@ func (n *Node) Attach(ifname string, net *Network) *Interface {
 }
 
 // Interface is a network interface that puts a machine onto a network via a
-// link. To attach an interface to a node, use node.Attach(). To link two
-// interfaces together, use if.Link(other).
+// link. To attach an interface to a node, use node.Attach().
+// To link two interfaces together, use if.Link(other).
 type Interface struct {
 	Name string
+
 	ip   netip.Addr
+	mac  net.HardwareAddr
 	node *Node
 	net  *Network
 	link *Link
@@ -152,5 +159,16 @@ type Link struct {
 // Packet is UDP packet flowing through the network.
 type Packet struct {
 	src, dst netip.AddrPort
-	payload  []byte
+
+	layerTypes int    // bitmap of parsed layer types
+	payload    []byte // entire packet
+}
+
+func allocHW() net.HardwareAddr {
+	var addr [6]byte
+	n, err := rand.Read(addr[:])
+	if err != nil || n != 6 {
+		panic(err)
+	}
+	return net.HardwareAddr(addr[:])
 }

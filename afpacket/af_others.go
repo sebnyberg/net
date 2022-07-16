@@ -1,7 +1,7 @@
 //go:build !linux
 // +build !linux
 
-package packet
+package afpacket
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 var errUnimplemented = fmt.Errorf("not implemented for %v", runtime.GOOS)
 
-func listen(_ net.Interface, _ int) (*Conn, error)        { return nil, errUnimplemented }
+func listen(_ net.Interface) (*Conn, error)               { return nil, errUnimplemented }
 func (c *Conn) readFrom(_ []byte) (int, net.Addr, error)  { return 0, nil, errUnimplemented }
 func (c *Conn) writeTo(_ []byte, _ net.Addr) (int, error) { return 0, errUnimplemented }
 func (c *Conn) close() error                              { return errUnimplemented }

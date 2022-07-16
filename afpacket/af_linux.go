@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package packet
+package afpacket
 
 import (
 	"net"
@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func listen(iface net.Interface, socketType int) (*Conn, error) {
+func listen(iface net.Interface) (*Conn, error) {
 	sockfd, err := unix.Socket(
 		unix.AF_PACKET,
 		unix.SOCK_RAW,
@@ -43,7 +43,7 @@ func (c *Conn) readFrom(b []byte) (int, net.Addr, error) {
 		network: "packet",
 		hwAddr:  net.HardwareAddr(sall.Addr[:sall.Halen]),
 	}
-	return 0, addr, errUnimplemented
+	return n, addr, nil
 }
 
 func (c *Conn) writeTo(_ []byte, _ net.Addr) (int, error) { return 0, errUnimplemented }

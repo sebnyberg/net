@@ -1,4 +1,4 @@
-package packet
+package frame
 
 import (
 	"encoding/binary"
@@ -24,6 +24,7 @@ type Ethernet struct {
 	Source       net.HardwareAddr
 	EthernetType EthernetType
 	Payload      []byte
+	// Todo: VLAN
 }
 
 func (e *Ethernet) Unmarshal(data []byte) error {

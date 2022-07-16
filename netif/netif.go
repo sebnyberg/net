@@ -1,12 +1,12 @@
-package packet
+package netif
 
 import (
 	"errors"
 	"net"
 )
 
-// findIF finds a valid network interface
-func findIF() (net.Interface, error) {
+// FindIF finds a valid network interface
+func FindIF() (net.Interface, error) {
 	ifs, err := net.Interfaces()
 	if err != nil {
 		return net.Interface{}, err

@@ -1,4 +1,4 @@
-package packet
+package afpacket
 
 import (
 	"fmt"
@@ -15,12 +15,25 @@ func htons(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }
 
+type Addr struct {
+	network string
+	hwAddr  net.HardwareAddr
+}
+
+func (a *Addr) Network() string {
+	return a.network
+}
+
+func (a *Addr) String() string {
+	return a.hwAddr.String()
+}
+
 type Conn struct {
 	sockfd int
 }
 
-func Listen(iface net.Interface, socketType int) (*Conn, error) {
-	return listen(iface, socketType)
+func Listen(iface net.Interface) (*Conn, error) {
+	return listen(iface)
 }
 
 func (c *Conn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
