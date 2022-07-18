@@ -10,7 +10,7 @@ import (
 type EtherType uint16
 
 const (
-	EtherTypeTooLow EtherType = 0x7FFF
+	EtherTypeTooLow EtherType = 0x07FF
 
 	EthernetTypeIPv4 EtherType = 0x0800
 	EthernetTypeARP  EtherType = 0x0806
@@ -35,7 +35,7 @@ func (e *Ethernet) Unmarshal(data []byte) error {
 	e.EthernetType = EtherType(binary.BigEndian.Uint16(data[12:14]))
 	e.Payload = data[14:]
 	if e.EthernetType <= EtherTypeTooLow || e.EthernetType >= EtherTypeTooHigh {
-		return fmt.Errorf("unknown ether type, %x", e)
+		return fmt.Errorf("unknown ether type, %x", e.EthernetType)
 	}
 	return nil
 }

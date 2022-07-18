@@ -27,21 +27,27 @@ func Decode(b []byte) (*packet, error) {
 	switch eth.EthernetType {
 	case EthernetTypeARP:
 		arp := new(ARP)
-		if err := arp.Unmarshal(b); err != nil {
+		if err := arp.Unmarshal(eth.Payload); err != nil {
 			return nil, err
 		}
 		p.network = arp
+	case EthernetTypeIPv4:
+		ip := new(IPv4)
+		if err := ip.Unmarshal(eth.Payload); err != nil {
+			return nil, err
+		}
+		p.network = ip
 	default:
-		fmt.Println("unknown network protocol")
+		fmt.Println("unknown network protocol", eth.EthernetType)
 		return nil, nil
 	}
 	return &p, nil
 }
 
 func (p *packet) Link() any {
-	return nil
+	return p.link
 }
 
 func (p *packet) Network() any {
-	return nil
+	return p.network
 }
