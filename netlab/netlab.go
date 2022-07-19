@@ -156,14 +156,6 @@ type Link struct {
 	if1, if2 *Interface
 }
 
-// Packet is UDP packet flowing through the network.
-type Packet struct {
-	src, dst netip.AddrPort
-
-	layerTypes int    // bitmap of parsed layer types
-	payload    []byte // entire packet
-}
-
 func allocHW() net.HardwareAddr {
 	var addr [6]byte
 	n, err := rand.Read(addr[:])
