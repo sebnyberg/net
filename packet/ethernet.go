@@ -7,6 +7,7 @@ import (
 	"net"
 )
 
+//go:generate stringer -type=EtherType -output ether_string.go
 type EtherType uint16
 
 const (
