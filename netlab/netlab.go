@@ -10,15 +10,16 @@ import (
 	"math/rand"
 	"net"
 	"net/netip"
+
+	"github.com/sebnyberg/net/packet"
 )
 
 var (
 	ifaceBufSize = 0
 )
 
-// Network is a set of interfaces (bound together by links). Currently, it's
-// role is to dynamically allocate IP addresses for interfaces. You could think
-// of it as ICANN.
+// Network is a set of interfaces (bound together by links). Currently, its
+// role is to dynamically allocate IP addresses for interfaces.
 type Network struct {
 	Name   string
 	Prefix netip.Prefix
@@ -46,11 +47,19 @@ func (n *Network) allocIP() netip.Addr {
 	return ip
 }
 
-// Node is a node in the network. It could be a machine or perhaps a switch.
+// Node represents a node in one or more networks. Depending on how it manages
+// traffic, it may be a router, switch, or perhaps a PC.
+//
+// When a packet arrives on an attached interface,
 type Node struct {
+	// Name contains the name of the node in the network
 	Name string
 
-	interfaces []*Interface
+	Interfaces []*Interface
+
+	HandleIngress       PacketHandler
+	HandleLocalDelivery PacketHandler
+	HandleEgress        PacketHandler
 }
 
 // Attach attaches an interface to a node, granting it an IP (and MAC?) address.
@@ -65,7 +74,7 @@ func (n *Node) Attach(ifname string, net *Network) *Interface {
 		ip:   net.allocIP(),
 		mac:  allocHW(),
 	}
-	n.interfaces = append(n.interfaces, &netif)
+	n.Interfaces = append(n.Interfaces, &netif)
 	if net.interfaces == nil {
 		net.interfaces = make(map[string]*Interface, 1)
 	}
@@ -74,10 +83,58 @@ func (n *Node) Attach(ifname string, net *Network) *Interface {
 	// Todo use node-level message handler instead of this dummy print
 	go func() {
 		for msg := range netif.Recv() {
-			log.Printf("received message of size %v on interface %v", len(msg), netif.Name)
+			// Decode packet
+			pkt, err := packet.Decode(msg)
+			if err != nil {
+				log.Println("failed to decode packet")
+				continue
+			}
+			np := &NodePacket{
+				Packet:   pkt,
+				SourceIF: &netif,
+			}
+			n.handleIngress(np)
 		}
 	}()
 	return &netif
+}
+
+// handleIngress goes through ingress handlers, reacting to their verdict.
+// If the verdict is Accept, routing will either be routed to the destination
+// interface (if set), or locally (if destination IF is unset).
+func (n *Node) handleIngress(pkt *NodePacket) {
+	// Todo: support chains of packet handlers
+	for {
+		ver := n.HandleIngress(pkt)
+		switch ver {
+		case VerdictAccept:
+			goto accept
+		case VerdictDrop:
+			goto drop
+		case VerdictRepeat:
+			// Keep going
+		default:
+			log.Fatalln("invalid ingress verdict", ver)
+		}
+	}
+
+drop:
+	log.Println("dropping node packet due to ingress verdict")
+	return
+
+accept:
+	if pkt.DestIF == nil {
+		n.handleLocalDelivery(pkt)
+	}
+	n.handleEgress(pkt)
+}
+
+func (n *Node) handleLocalDelivery(pkt *NodePacket) {
+	log.Fatalln("handle local delivery not implemented")
+}
+
+func (n *Node) handleEgress(pkt *NodePacket) {
+	log.Fatalln("handle egress not implemented")
 }
 
 // Interface is a network interface that puts a machine onto a network via a
@@ -163,4 +220,41 @@ func allocHW() net.HardwareAddr {
 		panic(err)
 	}
 	return net.HardwareAddr(addr[:])
+}
+
+type Verdict uint8
+
+const (
+	// VerdictAccept continues packet iteration
+	VerdictAccept Verdict = 0
+
+	// VerdictDrop drops the packet immediately.
+	VerdictDrop Verdict = 1
+
+	// VerdictRepeat restarts packet iteration.
+	// It is useful for when the packet contents have changed in some way.
+	VerdictRepeat Verdict = 2
+
+	// Todo: add other netfilter verdicts
+	// https://netfilter.org/projects/libnetfilter_queue/doxygen/html/group__Queue.html
+)
+
+// PacketHandler is called on ingress, local delivery, and egress.
+type PacketHandler func(p *NodePacket) Verdict
+
+// NodePacket describes a packet flowing through a node's routing system.
+// It is roughly equivalent to sk_buffer in Linux.
+type NodePacket struct {
+	// Packet contains a decoded Packet.
+	// Layers of the packet can be manipulated (e.g. in the case of NAT), but be
+	// wary of modification order.
+	Packet packet.Packet
+
+	// SourceIF points to the source interface.
+	SourceIF *Interface
+
+	// DestIF points to the destination interface.
+	// If DestIF is nil at the end of ingress, then HandleLocalDelivery() is
+	// called.
+	DestIF *Interface
 }
