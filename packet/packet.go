@@ -1,6 +1,9 @@
 package packet
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Packet interface {
 	// Link() returns the parsed link-layer frame
@@ -37,9 +40,11 @@ func Decode(b []byte) (*packet, error) {
 			return nil, err
 		}
 		p.network = ip
+	case EthernetTypeIPv6:
+		return &p, errors.New("IPv6 not supported")
 	default:
-		fmt.Println("unknown network protocol", eth.EthernetType)
-		return nil, nil
+		fmt.Printf("unknown network protocol %d\n", eth.EthernetType)
+		return &p, nil
 	}
 	return &p, nil
 }
