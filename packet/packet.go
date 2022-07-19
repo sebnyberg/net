@@ -34,44 +34,49 @@ var _ Packet = new(packet)
 type packet struct {
 	link    *Ethernet
 	network Layer
-	payload []byte
 }
 
 // Decode copies the input bytes, and eagerly decodes the provided byte slice.
-func Decode(b []byte) (*packet, error) {
+func Decode(b []byte) (Packet, error) {
 	// Copy input bytes
 	cpy := make([]byte, len(b))
 	copy(cpy, b)
 	b = cpy
 
 	var p packet
-	p.payload = b
 	eth := new(Ethernet)
 	if err := eth.Unmarshal(b); err != nil {
 		return nil, err
 	}
 
 	p.link = eth
+	if err := p.decodeEthernetFrame(eth); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+func (p *packet) decodeEthernetFrame(eth *Ethernet) error {
 	switch eth.EthernetType {
 	case EthernetTypeARP:
 		arp := new(ARP)
 		if err := arp.Unmarshal(eth.Payload); err != nil {
-			return nil, err
+			return err
 		}
 		p.network = arp
 	case EthernetTypeIPv4:
 		ip := new(IPv4)
 		if err := ip.Unmarshal(eth.Payload); err != nil {
-			return nil, err
+			return err
 		}
 		p.network = ip
 	case EthernetTypeIPv6:
-		return &p, errors.New("IPv6 not supported")
+		return errors.New("IPv6 not supported")
 	default:
 		fmt.Printf("unknown network protocol %d\n", eth.EthernetType)
-		return &p, nil
 	}
-	return &p, nil
+	return nil
 }
 
 func (p packet) Link() Layer {

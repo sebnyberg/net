@@ -55,3 +55,13 @@ func (e Ethernet) GetContents() []byte {
 func (e Ethernet) GetPayload() []byte {
 	return e.Payload
 }
+
+// PacketFromEthernet creates a new packet from an ethernet descriptor.
+func PacketFromEthernet(e *Ethernet) (Packet, error) {
+	p := new(packet)
+	p.link = e
+	if err := p.decodeEthernetFrame(e); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
