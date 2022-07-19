@@ -7,6 +7,8 @@ import (
 	"net/netip"
 )
 
+var _ Layer = new(IPv4)
+
 type IPv4 struct {
 	IHL            uint8
 	DSCP           uint8
@@ -21,7 +23,7 @@ type IPv4 struct {
 	Source         netip.Addr
 	Destination    netip.Addr
 	// Todo: options
-	Payload []byte
+	PacketBytes
 }
 
 func (p *IPv4) Unmarshal(data []byte) error {
@@ -55,6 +57,19 @@ func (p *IPv4) Unmarshal(data []byte) error {
 	if !ok {
 		return errors.New("invalid destination ip")
 	}
+	p.Contents = data
 	p.Payload = data[24:]
 	return nil
+}
+
+func (e IPv4) Type() LayerType {
+	return LayerTypeEthernet
+}
+
+func (e IPv4) GetContents() []byte {
+	return e.Contents
+}
+
+func (e IPv4) GetPayload() []byte {
+	return e.Payload
 }

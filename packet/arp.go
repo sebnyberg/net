@@ -7,7 +7,9 @@ import (
 	"net/netip"
 )
 
-//go:generate stringer -type=ARPType,ARPOpCode -output arp_string.go
+// Interface guard
+var _ Layer = new(ARP)
+
 type ARPType uint16
 
 const (
@@ -50,6 +52,7 @@ type ARP struct {
 	SourceIP netip.Addr
 	DestHW   net.HardwareAddr
 	DestIP   netip.Addr
+	PacketBytes
 }
 
 func (a *ARP) Unmarshal(data []byte) error {
@@ -75,5 +78,18 @@ func (a *ARP) Unmarshal(data []byte) error {
 	if !ok {
 		return errors.New("invalid source IP addr")
 	}
+	a.Contents = data
+	a.Payload = data[8+a.HLen*2+a.PLen*2:]
 	return nil
+}
+func (e ARP) Type() LayerType {
+	return LayerTypeEthernet
+}
+
+func (e ARP) GetContents() []byte {
+	return e.Contents
+}
+
+func (e ARP) GetPayload() []byte {
+	return e.Payload
 }
