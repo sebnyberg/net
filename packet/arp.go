@@ -7,36 +7,37 @@ import (
 	"net/netip"
 )
 
+//go:generate stringer -type=ARPType,ARPOpCode -output arp_string.go
 type ARPType uint16
 
 const (
-	// ARPTypeNetROM     = 0
-	ARPTypeEther = 1
-	// ARPTypeEEther     = 2
-	// ARPTypeAX25       = 3
-	// ARPTypePRONet     = 4
-	// ARPChaos          = 5
-	// ARPIEEE802        = 6
-	// ARPARCNet         = 7
-	// ARPAppletalk      = 8
-	// ARPFrameRelayDLCI = 15
-	// ARPATM            = 19
-	// ARPSTRIP          = 23
-	// ARPIEEE1394       = 24
-	// ARPEUI64          = 27
-	// ARPINFINIBAND     = 32
+	// ARPTypeNetROM     ARPType = 0
+	ARPTypeEther ARPType = 1
+	// ARPTypeEEther     ARPType = 2
+	// ARPTypeAX25       ARPType = 3
+	// ARPTypePRONet     ARPType = 4
+	// ARPChaos          ARPType = 5
+	// ARPIEEE802        ARPType = 6
+	// ARPARCNet         ARPType = 7
+	// ARPAppletalk      ARPType = 8
+	// ARPFrameRelayDLCI ARPType = 15
+	// ARPATM            ARPType = 19
+	// ARPSTRIP          ARPType = 23
+	// ARPIEEE1394       ARPType = 24
+	// ARPEUI64          ARPType = 27
+	// ARPINFINIBAND     ARPType = 32
 )
 
 type ARPOpCode uint16
 
 const (
-	ARPOPCodeRequest = 1
-	ARPOPCodeReply   = 2
-	// ARPOPCodeRRequest  = 3
-	// ARPOPCodeRReply    = 4
-	// ARPOPCodeInRequest = 8
-	// ARPOPCodeInReply   = 9
-	// ARPOPCodeNak       = 10
+	ARPOPCodeRequest ARPOpCode = 1
+	ARPOPCodeReply   ARPOpCode = 2
+	// ARPOPCodeRRequest  ARPOpCode = 3
+	// ARPOPCodeRReply    ARPOpCode = 4
+	// ARPOPCodeInRequest ARPOpCode = 8
+	// ARPOPCodeInReply   ARPOpCode = 9
+	// ARPOPCodeNak       ARPOpCode = 10
 )
 
 type ARP struct {
@@ -52,22 +53,25 @@ type ARP struct {
 }
 
 func (a *ARP) Unmarshal(data []byte) error {
-	if len(data) != 28 {
-		return errors.New("invalid ARP len")
+	if len(data) < 8 {
+		return errors.New("ARP too short")
 	}
 	a.HType = ARPType(binary.BigEndian.Uint16(data[0:2]))
 	a.PType = EtherType(binary.BigEndian.Uint16(data[2:4]))
 	a.HLen = data[4]
 	a.PLen = data[5]
+	if len(data) < int(8+a.HLen*2+a.PLen*2) {
+		return errors.New("invalid ARP packet len")
+	}
 	a.Oper = ARPOpCode(binary.BigEndian.Uint16(data[6:8]))
-	a.SourceHW = net.HardwareAddr(data[8:14])
+	a.SourceHW = net.HardwareAddr(data[8 : 8+a.HLen])
 	var ok bool
-	a.SourceIP, ok = netip.AddrFromSlice(data[14:18])
+	a.SourceIP, ok = netip.AddrFromSlice(data[8+a.HLen : 8+a.HLen+a.PLen])
 	if !ok {
 		return errors.New("invalid source IP addr")
 	}
-	a.DestHW = net.HardwareAddr(data[18:24])
-	a.DestIP, ok = netip.AddrFromSlice(data[24:28])
+	a.DestHW = net.HardwareAddr(data[8+a.HLen+a.PLen : 8+a.HLen*2+a.PLen])
+	a.DestIP, ok = netip.AddrFromSlice(data[8+a.HLen*2+a.PLen : 8+a.HLen*2+a.PLen*2])
 	if !ok {
 		return errors.New("invalid source IP addr")
 	}
