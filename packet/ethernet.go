@@ -58,10 +58,10 @@ func (e Ethernet) GetPayload() []byte {
 
 // PacketFromEthernet creates a new packet from an ethernet descriptor.
 func PacketFromEthernet(e *Ethernet) (Packet, error) {
-	p := new(packet)
-	p.link = e
+	var p Packet
+	p.Link = e
 	if err := p.decodeEthernetFrame(e); err != nil {
-		return nil, err
+		return p, err
 	}
 	return p, nil
 }
