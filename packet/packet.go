@@ -16,9 +16,12 @@ type PacketBytes struct {
 	Payload []byte
 }
 
-// packet contains an instance that satisfies the Packet interface.
+// Packet represents a raw packet flowing through the network.
 type Packet struct {
-	Link    *Ethernet
+	// Link contains the link-layer representation of the packet.
+	Link *Ethernet
+
+	// Network contains the network-layer representation of the packet.
 	Network Layer
 }
 
